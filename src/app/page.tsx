@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import type { Event, Todo } from "@/types";
-import { addDays, startOfToday } from "date-fns";
+import { addDays, startOfToday, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import CalendarView from "@/components/kiddie-plan/CalendarView";
 import TodoList from "@/components/kiddie-plan/TodoList";
-import { Calendar, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { activityCategories } from "@/config/activities";
 
 const today = startOfToday();
@@ -48,6 +48,8 @@ export default function Home() {
   const [events, setEvents] = useState<Event[]>(initialEvents);
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [showingAllWeekTodos, setShowingAllWeekTodos] = useState(false);
   
   const handleUpdateEvent = (event: Event) => {
     setEvents((prev) => {
@@ -73,20 +75,34 @@ export default function Home() {
   };
 
   const handleUpdateTodo = (todo: Todo) => {
-    if (selectedEvent) {
+    if (selectedEvent && !showingAllWeekTodos) {
       const updatedEvent = {
         ...selectedEvent,
         todos: selectedEvent.todos.map(t => t.id === todo.id ? todo : t)
       };
       handleUpdateEvent(updatedEvent);
     } else {
-      setTodos((prev) => prev.map(t => t.id === todo.id ? todo : t));
+      // It's either a general todo or a todo from an event while in "all week" view
+      let wasInEvent = false;
+      const updatedEvents = events.map(event => {
+        if (event.todos.some(t => t.id === todo.id)) {
+          wasInEvent = true;
+          return { ...event, todos: event.todos.map(t => t.id === todo.id ? todo : t) };
+        }
+        return event;
+      });
+
+      if (wasInEvent) {
+        setEvents(updatedEvents);
+      } else {
+        setTodos((prev) => prev.map(t => t.id === todo.id ? todo : t));
+      }
     }
   };
   
   const handleAddTodo = (text: string) => {
     const newTodo: Todo = { id: `todo_${Date.now()}`, text, completed: false };
-    if (selectedEvent) {
+    if (selectedEvent && !showingAllWeekTodos) {
       const updatedEvent = {
         ...selectedEvent,
         todos: [newTodo, ...selectedEvent.todos]
@@ -98,18 +114,33 @@ export default function Home() {
   };
 
   const handleDeleteTodo = (todoId: string) => {
-    if (selectedEvent) {
+     if (selectedEvent && !showingAllWeekTodos) {
       const updatedEvent = {
         ...selectedEvent,
         todos: selectedEvent.todos.filter(t => t.id !== todoId)
       };
       handleUpdateEvent(updatedEvent);
     } else {
-      setTodos((prev) => prev.filter((t) => t.id !== todoId));
+      // It's either a general todo or a todo from an event while in "all week" / general view
+      let wasInEvent = false;
+      const updatedEvents = events.map(event => {
+         if (event.todos.some(t => t.id === todoId)) {
+           wasInEvent = true;
+           return { ...event, todos: event.todos.filter(t => t.id !== todoId) };
+         }
+         return event;
+       });
+ 
+       if (wasInEvent) {
+         setEvents(updatedEvents);
+       } else {
+         setTodos((prev) => prev.filter((t) => t.id !== todoId));
+       }
     }
   };
 
   const handleSelectEvent = (eventId: string | null) => {
+    setShowingAllWeekTodos(false);
     if (eventId === null) {
       setSelectedEvent(null);
     } else {
@@ -117,8 +148,24 @@ export default function Home() {
       setSelectedEvent(event || null);
     }
   };
+  
+  const handleShowAllWeekTodos = () => {
+    setSelectedEvent(null);
+    setShowingAllWeekTodos(true);
+  }
+  
+  const getDisplayedTodos = () => {
+    if (showingAllWeekTodos) {
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+      const weekEvents = events.filter(e => isWithinInterval(e.date, { start: weekStart, end: weekEnd }));
+      const eventTodos = weekEvents.flatMap(e => e.todos);
+      return [...todos, ...eventTodos];
+    }
+    return selectedEvent ? selectedEvent.todos : todos;
+  }
 
-  const displayedTodos = selectedEvent ? selectedEvent.todos : todos;
+  const displayedTodos = getDisplayedTodos();
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground font-body">
@@ -137,6 +184,8 @@ export default function Home() {
         <div className="lg:col-span-2">
           <CalendarView 
             events={events} 
+            currentDate={currentDate}
+            onSetCurrentDate={setCurrentDate}
             onUpdateEvent={handleUpdateEvent} 
             onDeleteEvent={handleDeleteEvent}
             onSelectEvent={handleSelectEvent}
@@ -150,6 +199,8 @@ export default function Home() {
             onDeleteTodo={handleDeleteTodo} 
             onAddTodo={handleAddTodo}
             selectedEvent={selectedEvent}
+            onShowAllWeekTodos={handleShowAllWeekTodos}
+            showingAllWeekTodos={showingAllWeekTodos}
           />
         </div>
       </main>

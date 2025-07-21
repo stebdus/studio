@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 
 interface CalendarViewProps {
   events: Event[];
+  currentDate: Date;
+  onSetCurrentDate: (date: Date) => void;
   onUpdateEvent: (event: Event) => void;
   onDeleteEvent: (eventId: string) => void;
   onSelectEvent: (eventId: string | null) => void;
@@ -20,8 +22,7 @@ interface CalendarViewProps {
 
 const children = ["Alex", "Ben"];
 
-export default function CalendarView({ events, onUpdateEvent, onDeleteEvent, onSelectEvent, selectedEventId }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export default function CalendarView({ events, currentDate, onSetCurrentDate, onUpdateEvent, onDeleteEvent, onSelectEvent, selectedEventId }: CalendarViewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEventForDialog, setSelectedEventForDialog] = useState<Event | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -31,8 +32,8 @@ export default function CalendarView({ events, onUpdateEvent, onDeleteEvent, onS
     end: endOfWeek(currentDate, { weekStartsOn: 1 }),
   });
 
-  const nextWeek = () => setCurrentDate(add(currentDate, { weeks: 1 }));
-  const prevWeek = () => setCurrentDate(sub(currentDate, { weeks: 1 }));
+  const nextWeek = () => onSetCurrentDate(add(currentDate, { weeks: 1 }));
+  const prevWeek = () => onSetCurrentDate(sub(currentDate, { weeks: 1 }));
 
   const handleAddEventClick = (date: Date) => {
     setSelectedEventForDialog(undefined);
