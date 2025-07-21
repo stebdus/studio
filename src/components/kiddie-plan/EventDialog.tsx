@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,11 +27,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Event, Todo } from "@/types";
+import type { Event, Todo, ActivityCategoryConfig } from "@/types";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, Plus, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
-import { activityCategories } from "@/config/activities";
 import { useToast } from "@/hooks/use-toast";
 
 const todoSchema = z.object({
@@ -44,8 +43,8 @@ const eventSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
   date: z.date({ required_error: "A date for the event is required." }),
-  child: z.enum(["Alex", "Ben"], { required_error: "Please select a child" }),
-  category: z.enum(["school", "sport", "party", "hobby"], { required_error: "Please select a category" }),
+  child: z.string({ required_error: "Please select a child" }),
+  category: z.string({ required_error: "Please select a category" }),
   color: z.string(),
   todos: z.array(todoSchema),
 });
@@ -59,14 +58,16 @@ interface EventDialogProps {
   selectedDate?: Date;
   onUpdateEvent: (event: Event) => void;
   onDeleteEvent: (eventId: string) => void;
+  children: string[];
+  activityCategories: ActivityCategoryConfig[];
 }
 
-export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEvent, onDeleteEvent }: EventDialogProps) {
+export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEvent, onDeleteEvent, children, activityCategories }: EventDialogProps) {
   const { toast } = useToast();
   const [newTodoText, setNewTodoText] = useState("");
-
-  const defaultCategory = event?.category || "school";
-  const defaultColor = event?.color || activityCategories[defaultCategory].color;
+  
+  const defaultCategory = event?.category || (activityCategories.length > 0 ? activityCategories[0].id : '');
+  const defaultColor = event?.color || (activityCategories.length > 0 ? activityCategories[0].color : '#000000');
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -76,35 +77,38 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
           title: "",
           description: "",
           date: selectedDate || new Date(),
-          child: "Alex",
-          category: "school",
-          color: activityCategories.school.color,
+          child: children[0] || "",
+          category: defaultCategory,
+          color: defaultColor,
           todos: [],
         },
   });
 
   const watchedCategory = form.watch("category");
 
-  React.useEffect(() => {
-    form.setValue('color', activityCategories[watchedCategory].color);
-  }, [watchedCategory, form]);
+  useEffect(() => {
+    const categoryInfo = activityCategories.find(c => c.id === watchedCategory);
+    if (categoryInfo) {
+      form.setValue('color', categoryInfo.color);
+    }
+  }, [watchedCategory, form, activityCategories]);
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
-      const category = event?.category || "school";
-      const color = event?.color || activityCategories[category].color;
+      const defaultCat = event?.category || (activityCategories.length > 0 ? activityCategories[0].id : '');
+      const defaultCol = event?.color || (activityCategories.find(c => c.id === defaultCat)?.color || '#000000');
       form.reset(event ? {...event} : {
         title: "",
         description: "",
         date: selectedDate || new Date(),
-        child: "Alex",
-        category: category,
-        color: color,
+        child: children[0] || "",
+        category: defaultCat,
+        color: defaultCol,
         todos: [],
       });
       setNewTodoText("");
     }
-  }, [isOpen, event, selectedDate, form]);
+  }, [isOpen, event, selectedDate, form, children, activityCategories]);
   
   const handleAddTodo = () => {
     if (newTodoText.trim() === "") return;
@@ -233,18 +237,14 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
                       defaultValue={field.value}
                       className="flex space-x-4"
                     >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="Alex" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Alex</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="Ben" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Ben</FormLabel>
-                      </FormItem>
+                      {children.map(child => (
+                        <FormItem key={child} className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value={child} />
+                          </FormControl>
+                          <FormLabel className="font-normal">{child}</FormLabel>
+                        </FormItem>
+                      ))}
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
@@ -265,8 +265,8 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {Object.entries(activityCategories).map(([key, { label }]) => (
-                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                        {activityCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                         ))}
                         </SelectContent>
                     </Select>

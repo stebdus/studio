@@ -1,14 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import type { Event, Todo } from "@/types";
+import type { Event, Todo, ActivityCategoryConfig } from "@/types";
 import { addDays, startOfToday, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import CalendarView from "@/components/kiddie-plan/CalendarView";
 import TodoList from "@/components/kiddie-plan/TodoList";
-import { Users } from "lucide-react";
-import { activityCategories } from "@/config/activities";
+import { Users, Settings, School, PartyPopper, Dumbbell, Palette } from "lucide-react";
+import SettingsDialog from "@/components/kiddie-plan/SettingsDialog";
+import { Button } from "@/components/ui/button";
+
 
 const today = startOfToday();
+
+const initialCategories: ActivityCategoryConfig[] = [
+    { id: 'school', label: 'School', color: '#3b82f6', icon: School },
+    { id: 'sport', label: 'Sport', color: '#22c55e', icon: Dumbbell },
+    { id: 'party', label: 'Party', color: '#a855f7', icon: PartyPopper },
+    { id: 'hobby', label: 'Hobby', color: '#f59e0b', icon: Palette },
+];
 
 const initialEvents: Event[] = [
   { 
@@ -18,13 +27,13 @@ const initialEvents: Event[] = [
     date: today, 
     category: "sport", 
     child: "Alex", 
-    color: activityCategories.sport.color,
+    color: initialCategories.find(c => c.id === 'sport')?.color || '#000000',
     todos: [
       { id: "t3", text: "Pack soccer bag for Saturday", completed: false },
     ]
   },
-  { id: `evt_${Date.now()}_2`, title: "Piano Lesson", description: "With Mr. Smith.", date: addDays(today, 1), category: "hobby", child: "Ben", color: activityCategories.hobby.color, todos: [] },
-  { id: `evt_${Date.now()}_3`, title: "School Assembly", description: "All school assembly in the main hall.", date: addDays(today, 2), category: "school", child: "Alex", color: activityCategories.school.color, todos: [] },
+  { id: `evt_${Date.now()}_2`, title: "Piano Lesson", description: "With Mr. Smith.", date: addDays(today, 1), category: "hobby", child: "Ben", color: initialCategories.find(c => c.id === 'hobby')?.color || '#000000', todos: [] },
+  { id: `evt_${Date.now()}_3`, title: "School Assembly", description: "All school assembly in the main hall.", date: addDays(today, 2), category: "school", child: "Alex", color: initialCategories.find(c => c.id === 'school')?.color || '#000000', todos: [] },
   { 
     id: `evt_${Date.now()}_4`, 
     title: "Leo's Birthday Party", 
@@ -32,12 +41,12 @@ const initialEvents: Event[] = [
     date: addDays(today, 3), 
     category: "party", 
     child: "Ben", 
-    color: activityCategories.party.color,
+    color: initialCategories.find(c => c.id === 'party')?.color || '#000000',
     todos: [
       { id: "t1", text: "Buy birthday gift for Leo", completed: false },
     ]
   },
-  { id: `evt_${Date.now()}_5`, title: "Soccer Game", description: "Away game against the Eagles.", date: addDays(today, 4), category: "sport", child: "Alex", color: activityCategories.sport.color, todos: [] },
+  { id: `evt_${Date.now()}_5`, title: "Soccer Game", description: "Away game against the Eagles.", date: addDays(today, 4), category: "sport", child: "Alex", color: initialCategories.find(c => c.id === 'sport')?.color || '#000000', todos: [] },
 ];
 
 const initialTodos: Todo[] = [
@@ -50,6 +59,9 @@ export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showingAllWeekTodos, setShowingAllWeekTodos] = useState(false);
+  const [children, setChildren] = useState<string[]>(['Alex', 'Ben']);
+  const [activityCategories, setActivityCategories] = useState<ActivityCategoryConfig[]>(initialCategories);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const handleUpdateEvent = (event: Event) => {
     setEvents((prev) => {
@@ -165,6 +177,25 @@ export default function Home() {
     return selectedEvent ? selectedEvent.todos : todos;
   }
 
+  const handleSettingsSave = (settings: { children: string[], categories: ActivityCategoryConfig[] }) => {
+    const oldChildren = [...children];
+    setChildren(settings.children);
+    setActivityCategories(settings.categories);
+
+    // Update existing events with new category/child data
+    setEvents(prevEvents => prevEvents.map(event => {
+      const newCategory = settings.categories.find(c => c.id === event.category);
+      const childIndex = oldChildren.indexOf(event.child);
+      const newChild = settings.children[childIndex] || event.child;
+
+      return {
+        ...event,
+        child: newChild,
+        color: newCategory ? newCategory.color : event.color,
+      };
+    }));
+  };
+
   const displayedTodos = getDisplayedTodos();
 
   return (
@@ -175,8 +206,11 @@ export default function Home() {
           <div className="flex items-center gap-4 text-sm text-muted-foreground font-semibold">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              <span>Alex & Ben</span>
+              <span>{children.join(' & ')}</span>
             </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} aria-label="Settings">
+              <Settings className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </header>
@@ -190,6 +224,8 @@ export default function Home() {
             onDeleteEvent={handleDeleteEvent}
             onSelectEvent={handleSelectEvent}
             selectedEventId={selectedEvent?.id ?? null}
+            children={children}
+            activityCategories={activityCategories}
           />
         </div>
         <div className="lg:col-span-1">
@@ -204,6 +240,13 @@ export default function Home() {
           />
         </div>
       </main>
+       <SettingsDialog
+        isOpen={isSettingsOpen}
+        setIsOpen={setIsSettingsOpen}
+        currentChildren={children}
+        currentCategories={activityCategories}
+        onSave={handleSettingsSave}
+      />
     </div>
   );
 }

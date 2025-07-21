@@ -1,6 +1,6 @@
-export type ActivityCategory = "school" | "sport" | "party" | "hobby";
+export type ActivityCategory = string; // "school" | "sport" | "party" | "hobby";
 
-export type Child = "Alex" | "Ben";
+export type Child = string; // "Alex" | "Ben";
 
 export interface Event {
   id: string;
@@ -17,4 +17,11 @@ export interface Todo {
   id: string;
   text: string;
   completed: boolean;
+}
+
+export interface ActivityCategoryConfig {
+    id: string;
+    label: string;
+    color: string;
+    icon: React.ComponentType<{ className?: string }>;
 }

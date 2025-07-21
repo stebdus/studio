@@ -1,8 +1,10 @@
 import type { ActivityCategory } from '@/types';
 import { School, PartyPopper, Dumbbell, Palette } from 'lucide-react';
 
+type ActivityCategoryKey = "school" | "sport" | "party" | "hobby";
+
 export const activityCategories: {
-  [key in ActivityCategory]: {
+  [key in ActivityCategoryKey]: {
     label: string;
     color: string;
     colorClasses: string;

@@ -2,22 +2,22 @@
 
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import type { Event } from "@/types";
-import { activityCategories } from "@/config/activities";
+import type { Event, ActivityCategoryConfig } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { Pencil } from "lucide-react";
+import { Pencil, FileQuestion } from "lucide-react";
 
 interface EventCardProps {
   event: Event;
+  activityCategories: ActivityCategoryConfig[];
   onClick: () => void;
   onEditClick: () => void;
   isSelected: boolean;
 }
 
-export default function EventCard({ event, onClick, onEditClick, isSelected }: EventCardProps) {
-  const categoryInfo = activityCategories[event.category];
-  const Icon = categoryInfo.icon;
+export default function EventCard({ event, activityCategories, onClick, onEditClick, isSelected }: EventCardProps) {
+  const categoryInfo = activityCategories.find(c => c.id === event.category);
+  const Icon = categoryInfo ? categoryInfo.icon : FileQuestion;
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();

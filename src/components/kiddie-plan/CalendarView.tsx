@@ -5,7 +5,7 @@ import { add, format, eachDayOfInterval, startOfWeek, endOfWeek, sub, isSameDay 
 import { ChevronLeft, ChevronRight, PlusCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Event } from "@/types";
+import type { Event, ActivityCategoryConfig } from "@/types";
 import EventCard from "./EventCard";
 import { EventDialog } from "./EventDialog";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,11 @@ interface CalendarViewProps {
   onDeleteEvent: (eventId: string) => void;
   onSelectEvent: (eventId: string | null) => void;
   selectedEventId: string | null;
+  children: string[];
+  activityCategories: ActivityCategoryConfig[];
 }
 
-const children = ["Alex", "Ben"];
-
-export default function CalendarView({ events, currentDate, onSetCurrentDate, onUpdateEvent, onDeleteEvent, onSelectEvent, selectedEventId }: CalendarViewProps) {
+export default function CalendarView({ events, currentDate, onSetCurrentDate, onUpdateEvent, onDeleteEvent, onSelectEvent, selectedEventId, children, activityCategories }: CalendarViewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEventForDialog, setSelectedEventForDialog] = useState<Event | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -115,7 +115,8 @@ export default function CalendarView({ events, currentDate, onSetCurrentDate, on
                       .map((event) => (
                         <EventCard 
                           key={event.id} 
-                          event={event} 
+                          event={event}
+                          activityCategories={activityCategories}
                           onClick={() => handleEventClick(event)}
                           onEditClick={() => handleEditEventClick(event)}
                           isSelected={selectedEventId === event.id}
@@ -138,6 +139,8 @@ export default function CalendarView({ events, currentDate, onSetCurrentDate, on
         selectedDate={selectedDate}
         onUpdateEvent={onUpdateEvent}
         onDeleteEvent={onDeleteEvent}
+        children={children}
+        activityCategories={activityCategories}
       />
     </Card>
   );
