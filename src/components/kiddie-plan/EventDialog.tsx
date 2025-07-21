@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,12 +27,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Event } from "@/types";
+import type { Event, Todo } from "@/types";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import { activityCategories } from "@/config/activities";
 import { useToast } from "@/hooks/use-toast";
+
+const todoSchema = z.object({
+  id: z.string(),
+  text: z.string().min(1, "To-do text cannot be empty"),
+  completed: z.boolean(),
+});
 
 const eventSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -41,6 +47,7 @@ const eventSchema = z.object({
   child: z.enum(["Alex", "Ben"], { required_error: "Please select a child" }),
   category: z.enum(["school", "sport", "party", "hobby"], { required_error: "Please select a category" }),
   color: z.string(),
+  todos: z.array(todoSchema),
 });
 
 type EventFormValues = z.infer<typeof eventSchema>;
@@ -56,20 +63,24 @@ interface EventDialogProps {
 
 export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEvent, onDeleteEvent }: EventDialogProps) {
   const { toast } = useToast();
-  
+  const [newTodoText, setNewTodoText] = useState("");
+
   const defaultCategory = event?.category || "school";
   const defaultColor = event?.color || activityCategories[defaultCategory].color;
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
-    defaultValues: {
-      title: event?.title || "",
-      description: event?.description || "",
-      date: event?.date || selectedDate || new Date(),
-      child: event?.child || "Alex",
-      category: defaultCategory,
-      color: defaultColor,
-    },
+    defaultValues: event 
+      ? {...event}
+      : {
+          title: "",
+          description: "",
+          date: selectedDate || new Date(),
+          child: "Alex",
+          category: "school",
+          color: activityCategories.school.color,
+          todos: [],
+        },
   });
 
   const watchedCategory = form.watch("category");
@@ -82,16 +93,35 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
     if (isOpen) {
       const category = event?.category || "school";
       const color = event?.color || activityCategories[category].color;
-      form.reset({
-        title: event?.title || "",
-        description: event?.description || "",
-        date: event?.date || selectedDate || new Date(),
-        child: event?.child || "Alex",
+      form.reset(event ? {...event} : {
+        title: "",
+        description: "",
+        date: selectedDate || new Date(),
+        child: "Alex",
         category: category,
         color: color,
+        todos: [],
       });
+      setNewTodoText("");
     }
   }, [isOpen, event, selectedDate, form]);
+  
+  const handleAddTodo = () => {
+    if (newTodoText.trim() === "") return;
+    const newTodo: Todo = {
+      id: `todo_${Date.now()}`,
+      text: newTodoText.trim(),
+      completed: false
+    };
+    const currentTodos = form.getValues('todos');
+    form.setValue('todos', [...currentTodos, newTodo]);
+    setNewTodoText("");
+  };
+
+  const handleRemoveTodo = (todoId: string) => {
+    const currentTodos = form.getValues('todos');
+    form.setValue('todos', currentTodos.filter(t => t.id !== todoId));
+  }
 
   const onSubmit = (data: EventFormValues) => {
     const newEvent: Event = {
@@ -117,10 +147,12 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
       setIsOpen(false);
     }
   };
+  
+  const todos = form.watch('todos');
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{event ? "Edit Event" : "Add Event"}</DialogTitle>
           <DialogDescription>
@@ -128,7 +160,7 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
             <FormField
               control={form.control}
               name="title"
@@ -160,7 +192,7 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date & Time</FormLabel>
+                  <FormLabel>Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -258,7 +290,41 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
                 />
             </div>
 
-            <DialogFooter className="pt-4">
+            <div className="space-y-2">
+              <FormLabel>To-dos for this event</FormLabel>
+              <div className="space-y-2 rounded-md border p-2">
+                {todos.length > 0 ? (
+                  todos.map((todo) => (
+                    <div key={todo.id} className="flex items-center gap-2">
+                      <span className="flex-1 text-sm">{todo.text}</span>
+                       <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveTodo(todo.id)}>
+                         <X className="h-4 w-4"/>
+                       </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground p-2 text-center">No to-dos yet.</p>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                 <Input 
+                   value={newTodoText}
+                   onChange={(e) => setNewTodoText(e.target.value)}
+                   placeholder="Add a to-do..."
+                   onKeyDown={(e) => {
+                     if (e.key === "Enter") {
+                       e.preventDefault();
+                       handleAddTodo();
+                     }
+                   }}
+                 />
+                 <Button type="button" size="icon" onClick={handleAddTodo}>
+                   <Plus className="h-4 w-4" />
+                 </Button>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 sticky bottom-0 bg-background py-4">
               {event && (
                  <Button type="button" variant="destructive" onClick={handleDelete} className="mr-auto">
                     <Trash2 className="mr-2 h-4 w-4" /> Delete

@@ -5,15 +5,24 @@ import { format } from "date-fns";
 import type { Event } from "@/types";
 import { activityCategories } from "@/config/activities";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { Pencil } from "lucide-react";
 
 interface EventCardProps {
   event: Event;
   onClick: () => void;
+  onEditClick: () => void;
+  isSelected: boolean;
 }
 
-export default function EventCard({ event, onClick }: EventCardProps) {
+export default function EventCard({ event, onClick, onEditClick, isSelected }: EventCardProps) {
   const categoryInfo = activityCategories[event.category];
   const Icon = categoryInfo.icon;
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEditClick();
+  }
 
   return (
     <motion.div
@@ -23,15 +32,27 @@ export default function EventCard({ event, onClick }: EventCardProps) {
       exit={{ opacity: 0, y: -10 }}
       onClick={onClick}
       className={cn(
-        "p-2 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-all text-sm bg-card",
+        "p-2 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-all text-sm bg-card relative group",
+        isSelected && "ring-2 ring-primary shadow-lg"
       )}
       style={{ borderLeftColor: event.color }}
     >
       <div className="flex items-start justify-between">
-        <div className="font-bold">{event.title}</div>
-        <Icon className="h-4 w-4" style={{ color: event.color }} />
+        <div className="font-bold pr-6">{event.title}</div>
+        <Icon className="h-4 w-4 flex-shrink-0" style={{ color: event.color }} />
       </div>
       <div className="text-xs text-muted-foreground">{format(event.date, "h:mm a")}</div>
+      {event.todos.length > 0 && (
+         <div className="text-xs text-muted-foreground mt-1">{event.todos.length} to-do(s)</div>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={handleEditClick}
+      >
+        <Pencil className="h-3 w-3" />
+      </Button>
     </motion.div>
   );
 }

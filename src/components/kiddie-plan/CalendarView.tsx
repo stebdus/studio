@@ -1,26 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { add, format, eachDayOfInterval, startOfWeek, endOfWeek, sub, isSameDay, getDay } from "date-fns";
-import { ChevronLeft, ChevronRight, PlusCircle } from "lucide-react";
+import { add, format, eachDayOfInterval, startOfWeek, endOfWeek, sub, isSameDay } from "date-fns";
+import { ChevronLeft, ChevronRight, PlusCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Event } from "@/types";
 import EventCard from "./EventCard";
 import { EventDialog } from "./EventDialog";
+import { cn } from "@/lib/utils";
 
 interface CalendarViewProps {
   events: Event[];
   onUpdateEvent: (event: Event) => void;
   onDeleteEvent: (eventId: string) => void;
+  onSelectEvent: (eventId: string | null) => void;
+  selectedEventId: string | null;
 }
 
 const children = ["Alex", "Ben"];
 
-export default function CalendarView({ events, onUpdateEvent, onDeleteEvent }: CalendarViewProps) {
+export default function CalendarView({ events, onUpdateEvent, onDeleteEvent, onSelectEvent, selectedEventId }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | undefined>(undefined);
+  const [selectedEventForDialog, setSelectedEventForDialog] = useState<Event | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   const week = eachDayOfInterval({
@@ -32,16 +35,29 @@ export default function CalendarView({ events, onUpdateEvent, onDeleteEvent }: C
   const prevWeek = () => setCurrentDate(sub(currentDate, { weeks: 1 }));
 
   const handleAddEventClick = (date: Date) => {
-    setSelectedEvent(undefined);
+    setSelectedEventForDialog(undefined);
     setSelectedDate(date);
+    onSelectEvent(null);
     setIsDialogOpen(true);
   };
   
   const handleEventClick = (event: Event) => {
-    setSelectedEvent(event);
+    if (selectedEventId === event.id) {
+      onSelectEvent(null);
+    } else {
+      onSelectEvent(event.id);
+    }
+  };
+
+  const handleEditEventClick = (event: Event) => {
+    setSelectedEventForDialog(event);
     setSelectedDate(event.date);
     setIsDialogOpen(true);
-  };
+  }
+
+  const handleClearSelection = () => {
+    onSelectEvent(null);
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -58,6 +74,12 @@ export default function CalendarView({ events, onUpdateEvent, onDeleteEvent }: C
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+           {selectedEventId && (
+            <Button variant="ghost" size="sm" onClick={handleClearSelection} className="text-muted-foreground">
+              <X className="mr-2 h-4 w-4" />
+              Clear Selection
+            </Button>
+          )}
         </div>
         <Button onClick={() => handleAddEventClick(new Date())}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add Event
@@ -72,7 +94,15 @@ export default function CalendarView({ events, onUpdateEvent, onDeleteEvent }: C
             </div>
           ))}
           {week.map((day) => (
-            <div key={day.toString()} className="grid grid-rows-2 border-r relative group">
+            <div 
+              key={day.toString()} 
+              className={cn("grid grid-rows-2 border-r relative group transition-colors", { "bg-muted/50": !selectedEventId && isSameDay(day, new Date()) })}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                   onSelectEvent(null);
+                }
+              }}
+            >
               {children.map((child, index) => (
                 <div key={child} className={`p-2 h-48 overflow-y-auto ${index === 0 ? 'border-b' : ''}`}>
                   {index === 0 && <div className="absolute top-1 left-1 text-xs font-bold text-muted-foreground">{child}</div>}
@@ -82,7 +112,13 @@ export default function CalendarView({ events, onUpdateEvent, onDeleteEvent }: C
                       .filter((e) => isSameDay(e.date, day) && e.child === child)
                       .sort((a,b) => a.date.getTime() - b.date.getTime())
                       .map((event) => (
-                        <EventCard key={event.id} event={event} onClick={() => handleEventClick(event)} />
+                        <EventCard 
+                          key={event.id} 
+                          event={event} 
+                          onClick={() => handleEventClick(event)}
+                          onEditClick={() => handleEditEventClick(event)}
+                          isSelected={selectedEventId === event.id}
+                        />
                       ))}
                   </div>
                 </div>
@@ -97,7 +133,7 @@ export default function CalendarView({ events, onUpdateEvent, onDeleteEvent }: C
       <EventDialog
         isOpen={isDialogOpen}
         setIsOpen={setIsDialogOpen}
-        event={selectedEvent}
+        event={selectedEventForDialog}
         selectedDate={selectedDate}
         onUpdateEvent={onUpdateEvent}
         onDeleteEvent={onDeleteEvent}

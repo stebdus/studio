@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import type { Todo } from "@/types";
+import type { Event, Todo } from "@/types";
 import TodoItem from "./TodoItem";
 import { AnimatePresence } from "framer-motion";
 
@@ -14,9 +14,10 @@ interface TodoListProps {
   onUpdateTodo: (todo: Todo) => void;
   onDeleteTodo: (todoId: string) => void;
   onAddTodo: (text: string) => void;
+  selectedEvent: Event | null;
 }
 
-export default function TodoList({ todos, onUpdateTodo, onDeleteTodo, onAddTodo }: TodoListProps) {
+export default function TodoList({ todos, onUpdateTodo, onDeleteTodo, onAddTodo, selectedEvent }: TodoListProps) {
   const [newTodoText, setNewTodoText] = useState("");
 
   const handleAddTodo = (e: React.FormEvent) => {
@@ -30,19 +31,15 @@ export default function TodoList({ todos, onUpdateTodo, onDeleteTodo, onAddTodo 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">To-Do List</CardTitle>
+        <CardTitle className="font-headline text-2xl">
+            {selectedEvent ? "Event To-Dos" : "General To-Dos"}
+        </CardTitle>
+        <CardDescription>
+            {selectedEvent ? `Tasks for "${selectedEvent.title}"` : "Your general tasks and reminders."}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <AnimatePresence>
-            {todos.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} onUpdate={onUpdateTodo} onDelete={onDeleteTodo} />
-            ))}
-          </AnimatePresence>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <form onSubmit={handleAddTodo} className="flex w-full items-center space-x-2">
+      <CardContent className="min-h-[200px]">
+        <form onSubmit={handleAddTodo} className="flex w-full items-center space-x-2 mb-4">
           <Input 
             value={newTodoText} 
             onChange={(e) => setNewTodoText(e.target.value)} 
@@ -52,7 +49,19 @@ export default function TodoList({ todos, onUpdateTodo, onDeleteTodo, onAddTodo 
             <Plus className="h-4 w-4" />
           </Button>
         </form>
-      </CardFooter>
+        <div className="space-y-2">
+          <AnimatePresence>
+            {todos.map((todo) => (
+              <TodoItem key={todo.id} todo={todo} onUpdate={onUpdateTodo} onDelete={onDeleteTodo} />
+            ))}
+          </AnimatePresence>
+           {todos.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center pt-8">
+              No to-dos here.
+            </p>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }

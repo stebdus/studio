@@ -10,6 +10,7 @@ export interface Event {
   category: ActivityCategory;
   child: Child;
   color: string;
+  todos: Todo[];
 }
 
 export interface Todo {
