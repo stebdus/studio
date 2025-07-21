@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Event, Todo, ActivityCategoryConfig } from "@/types";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, Plus, Trash2, X } from "lucide-react";
-import { format } from "date-fns";
+import { format, setHours, setMinutes } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 const todoSchema = z.object({
@@ -85,6 +85,7 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
   });
 
   const watchedCategory = form.watch("category");
+  const watchedDate = form.watch("date");
 
   useEffect(() => {
     const categoryInfo = activityCategories.find(c => c.id === watchedCategory);
@@ -151,6 +152,16 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
       setIsOpen(false);
     }
   };
+
+  const handleTimeChange = (type: 'hour' | 'minute', value: string) => {
+    const numericValue = parseInt(value, 10);
+    const currentDate = form.getValues('date');
+    if (type === 'hour') {
+      form.setValue('date', setHours(currentDate, numericValue));
+    } else {
+      form.setValue('date', setMinutes(currentDate, numericValue));
+    }
+  };
   
   const todos = form.watch('todos');
 
@@ -191,40 +202,75 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <FormLabel>Time</FormLabel>
+                   <div className="flex gap-2">
+                      <Select
+                        value={format(watchedDate, 'HH')}
+                        onValueChange={(value) => handleTimeChange('hour', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map(hour => (
+                            <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={format(watchedDate, 'mm')}
+                        onValueChange={(value) => handleTimeChange('minute', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['00', '15', '30', '45'].map(minute => (
+                            <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                   </div>
+                </div>
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="child"
