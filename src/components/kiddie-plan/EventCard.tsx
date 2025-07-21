@@ -23,15 +23,15 @@ export default function EventCard({ event, onClick }: EventCardProps) {
       exit={{ opacity: 0, y: -10 }}
       onClick={onClick}
       className={cn(
-        "p-2 rounded-lg border cursor-pointer hover:shadow-md transition-all text-sm",
-        categoryInfo.colorClasses
+        "p-2 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-all text-sm bg-card",
       )}
+      style={{ borderLeftColor: event.color }}
     >
       <div className="flex items-start justify-between">
         <div className="font-bold">{event.title}</div>
-        <Icon className="h-4 w-4" />
+        <Icon className="h-4 w-4" style={{ color: event.color }} />
       </div>
-      <div className="text-xs">{format(event.date, "h:mm a")}</div>
+      <div className="text-xs text-muted-foreground">{format(event.date, "h:mm a")}</div>
     </motion.div>
   );
 }

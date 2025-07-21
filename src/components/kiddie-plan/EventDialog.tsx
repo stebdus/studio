@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Event, Child } from "@/types";
+import type { Event } from "@/types";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -40,6 +40,7 @@ const eventSchema = z.object({
   date: z.date({ required_error: "A date for the event is required." }),
   child: z.enum(["Alex", "Ben"], { required_error: "Please select a child" }),
   category: z.enum(["school", "sport", "party", "hobby"], { required_error: "Please select a category" }),
+  color: z.string(),
 });
 
 type EventFormValues = z.infer<typeof eventSchema>;
@@ -55,6 +56,10 @@ interface EventDialogProps {
 
 export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEvent, onDeleteEvent }: EventDialogProps) {
   const { toast } = useToast();
+  
+  const defaultCategory = event?.category || "school";
+  const defaultColor = event?.color || activityCategories[defaultCategory].color;
+
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
@@ -62,18 +67,28 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
       description: event?.description || "",
       date: event?.date || selectedDate || new Date(),
       child: event?.child || "Alex",
-      category: event?.category || "school",
+      category: defaultCategory,
+      color: defaultColor,
     },
   });
+
+  const watchedCategory = form.watch("category");
+
+  React.useEffect(() => {
+    form.setValue('color', activityCategories[watchedCategory].color);
+  }, [watchedCategory, form]);
   
   React.useEffect(() => {
     if (isOpen) {
+      const category = event?.category || "school";
+      const color = event?.color || activityCategories[category].color;
       form.reset({
         title: event?.title || "",
         description: event?.description || "",
         date: event?.date || selectedDate || new Date(),
         child: event?.child || "Alex",
-        category: event?.category || "school",
+        category: category,
+        color: color,
       });
     }
   }, [isOpen, event, selectedDate, form]);
@@ -204,28 +219,45 @@ export function EventDialog({ isOpen, setIsOpen, event, selectedDate, onUpdateEv
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an activity type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(activityCategories).map(([key, { label }]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-3 gap-4">
+                <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                    <FormItem className="col-span-2">
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select an activity type" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {Object.entries(activityCategories).map(([key, { label }]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Color</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                            <div className="w-full h-10 rounded-md border border-input" style={{ backgroundColor: field.value }}></div>
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+            </div>
+
             <DialogFooter className="pt-4">
               {event && (
                  <Button type="button" variant="destructive" onClick={handleDelete} className="mr-auto">

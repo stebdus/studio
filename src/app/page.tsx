@@ -6,14 +6,15 @@ import { addDays, startOfToday } from "date-fns";
 import CalendarView from "@/components/kiddie-plan/CalendarView";
 import TodoList from "@/components/kiddie-plan/TodoList";
 import { Calendar, Users } from "lucide-react";
+import { activityCategories } from "@/config/activities";
 
 const today = startOfToday();
 const initialEvents: Event[] = [
-  { id: `evt_${Date.now()}_1`, title: "Soccer Practice", description: "Practice at the main field.", date: today, category: "sport", child: "Alex" },
-  { id: `evt_${Date.now()}_2`, title: "Piano Lesson", description: "With Mr. Smith.", date: addDays(today, 1), category: "hobby", child: "Ben" },
-  { id: `evt_${Date.now()}_3`, title: "School Assembly", description: "All school assembly in the main hall.", date: addDays(today, 2), category: "school", child: "Alex" },
-  { id: `evt_${Date.now()}_4`, title: "Leo's Birthday Party", description: "At the park, bring a gift!", date: addDays(today, 3), category: "party", child: "Ben" },
-  { id: `evt_${Date.now()}_5`, title: "Soccer Game", description: "Away game against the Eagles.", date: addDays(today, 4), category: "sport", child: "Alex" },
+  { id: `evt_${Date.now()}_1`, title: "Soccer Practice", description: "Practice at the main field.", date: today, category: "sport", child: "Alex", color: activityCategories.sport.color },
+  { id: `evt_${Date.now()}_2`, title: "Piano Lesson", description: "With Mr. Smith.", date: addDays(today, 1), category: "hobby", child: "Ben", color: activityCategories.hobby.color },
+  { id: `evt_${Date.now()}_3`, title: "School Assembly", description: "All school assembly in the main hall.", date: addDays(today, 2), category: "school", child: "Alex", color: activityCategories.school.color },
+  { id: `evt_${Date.now()}_4`, title: "Leo's Birthday Party", description: "At the park, bring a gift!", date: addDays(today, 3), category: "party", child: "Ben", color: activityCategories.party.color },
+  { id: `evt_${Date.now()}_5`, title: "Soccer Game", description: "Away game against the Eagles.", date: addDays(today, 4), category: "sport", child: "Alex", color: activityCategories.sport.color },
 ];
 
 const initialTodos: Todo[] = [

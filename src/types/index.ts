@@ -9,6 +9,7 @@ export interface Event {
   date: Date;
   category: ActivityCategory;
   child: Child;
+  color: string;
 }
 
 export interface Todo {
