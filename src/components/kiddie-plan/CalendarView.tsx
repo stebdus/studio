@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { add, format, eachDayOfInterval, startOfWeek, endOfWeek, sub, isSameDay } from "date-fns";
 import { ChevronLeft, ChevronRight, PlusCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,11 @@ export default function CalendarView({ events, currentDate, onSetCurrentDate, on
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEventForDialog, setSelectedEventForDialog] = useState<Event | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [today, setToday] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setToday(new Date());
+  }, []);
 
   const week = eachDayOfInterval({
     start: startOfWeek(currentDate, { weekStartsOn: 1 }),
@@ -97,7 +103,7 @@ export default function CalendarView({ events, currentDate, onSetCurrentDate, on
           {week.map((day) => (
             <div 
               key={day.toString()} 
-              className={cn("grid grid-rows-2 border-r relative group transition-colors", { "bg-muted/50": !selectedEventId && isSameDay(day, new Date()) })}
+              className={cn("grid grid-rows-2 border-r relative group transition-colors", { "bg-muted/50": !selectedEventId && today && isSameDay(day, today) })}
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                    onSelectEvent(null);
