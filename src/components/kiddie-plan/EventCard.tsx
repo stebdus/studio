@@ -1,3 +1,4 @@
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -6,6 +7,7 @@ import type { Event, ActivityCategoryConfig } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Pencil, FileQuestion } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface EventCardProps {
   event: Event;
@@ -16,12 +18,21 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, activityCategories, onClick, onEditClick, isSelected }: EventCardProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const categoryInfo = activityCategories.find(c => c.id === event.category);
   const Icon = categoryInfo ? categoryInfo.icon : FileQuestion;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEditClick();
+  }
+
+  if (!isMounted) {
+    return null;
   }
 
   return (
