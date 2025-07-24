@@ -8,6 +8,7 @@ import TodoList from "@/components/kiddie-plan/TodoList";
 import { Users, Settings, School, PartyPopper, Dumbbell, Palette } from "lucide-react";
 import SettingsDialog from "@/components/kiddie-plan/SettingsDialog";
 import { Button } from "@/components/ui/button";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 
 const today = startOfToday();
@@ -47,20 +48,32 @@ const initialEvents: Event[] = [
     ]
   },
   { id: `evt_${Date.now()}_5`, title: "Soccer Game", description: "Away game against the Eagles.", date: addDays(today, 4), category: "sport", child: "Alex", color: initialCategories.find(c => c.id === 'sport')?.color || '#000000', todos: [] },
-];
+].map(e => ({...e, date: new Date(e.date)}));
 
 const initialTodos: Todo[] = [
   { id: "t2", text: "Finish math homework", completed: true },
 ];
 
+const parseStoredEvents = (events: Event[]): Event[] => {
+  return events.map(e => ({...e, date: new Date(e.date)}));
+}
+
 export default function Home() {
-  const [events, setEvents] = useState<Event[]>(initialEvents);
-  const [todos, setTodos] = useState<Todo[]>(initialTodos);
+  const [events, setEvents] = useLocalStorage<Event[]>("kiddieplan:events", initialEvents, parseStoredEvents);
+  const [todos, setTodos] = useLocalStorage<Todo[]>("kiddieplan:todos", initialTodos);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showingAllWeekTodos, setShowingAllWeekTodos] = useState(false);
-  const [children, setChildren] = useState<string[]>(['Alex', 'Ben']);
-  const [activityCategories, setActivityCategories] = useState<ActivityCategoryConfig[]>(initialCategories);
+  const [children, setChildren] = useLocalStorage<string[]>("kiddieplan:children", ['Alex', 'Ben']);
+  const [activityCategories, setActivityCategories] = useLocalStorage<ActivityCategoryConfig[]>("kiddieplan:categories", initialCategories, (cats) => {
+    const iconMap: {[key: string]: React.ComponentType<{ className?: string }>} = {
+      school: School,
+      sport: Dumbbell,
+      party: PartyPopper,
+      hobby: Palette,
+    };
+    return cats.map(c => ({...c, icon: iconMap[c.id] || Palette}));
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const handleUpdateEvent = (event: Event) => {
